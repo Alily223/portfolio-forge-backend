@@ -1,8 +1,9 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, File, UploadFile
 from pydantic import BaseModel
 import boto3
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError
 from decouple import config
+import json
 
 AWS_BUCKET_NAME = config("AWS_BUCKET_NAME")
 AWS_REGION = config("AWS_REGION")
@@ -40,6 +41,17 @@ async def retrieve_string_from_s3(key: str):
         response = s3_client.get_object(Bucket=AWS_BUCKET_NAME, Key=key)
         data = response["Body"].read().decode("utf-8")
         return {"key": key, "value": data}
+    except s3_client.exceptions.NoSuchKey:
+        raise HTTPException(status_code=404, detail=f"No string found with key '{key}'")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/delete")
+async def delete_string_from_s3(key: str):
+    try:
+        s3_client.delete_object(Bucket=AWS_BUCKET_NAME, Key=key)
+        return {"message": f"string deleted from S3 with key '{key}'"}
     except s3_client.exceptions.NoSuchKey:
         raise HTTPException(status_code=404, detail=f"No string found with key '{key}'")
     except Exception as e:
