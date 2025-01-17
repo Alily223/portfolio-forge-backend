@@ -11,6 +11,7 @@ python-decouple = "*"
 python-dotenv = "*"
 botocore = "*"
 boto3 = "*"
+pyjwt = "*"
 
 [dev-packages]
 
