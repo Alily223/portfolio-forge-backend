@@ -20,39 +20,25 @@ s3_client = boto3.client(
 app = FastAPI()
 # logfire.instrument_fastapi(app)
 
-@app.post("/save")
-async def save_string_to_s3(key: str, value: str):
+class SignUpRequest(BaseModel):
+    email: str
+    first_name: str
+    last_name: str
+    user_name: str
+    password: str
+    birth_date: str
+
+
+@app.post("/sign-up")
+async def sign_up(request: SignUpRequest):
     try:
         s3_client.put_object(
+            Body=json.dumps(request.model_dump()),
             Bucket=AWS_BUCKET_NAME,
-            Key=key,
-            Body=value,
-            ContentType="text/plain"
+            Key=f"users/{request.user_name}.json",
+            ACL="public-read",
+            ContentType="application/json"
         )
-        return {"message": f"string saved to S3 with key '{key}'"}
-    except (NoCredentialsError, PartialCredentialsError):
-        raise HTTPException(status_code=500, detail="AWS credentials are not configured properly.")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    
-@app.get("/retrieve")
-async def retrieve_string_from_s3(key: str):
-    try:
-        response = s3_client.get_object(Bucket=AWS_BUCKET_NAME, Key=key)
-        data = response["Body"].read().decode("utf-8")
-        return {"key": key, "value": data}
-    except s3_client.exceptions.NoSuchKey:
-        raise HTTPException(status_code=404, detail=f"No string found with key '{key}'")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.delete("/delete")
-async def delete_string_from_s3(key: str):
-    try:
-        s3_client.delete_object(Bucket=AWS_BUCKET_NAME, Key=key)
-        return {"message": f"string deleted from S3 with key '{key}'"}
-    except s3_client.exceptions.NoSuchKey:
-        raise HTTPException(status_code=404, detail=f"No string found with key '{key}'")
-    except Exception as e:
+        return {"message": "File uploaded successfully"}
+    except (NoCredentialsError, PartialCredentialsError) as e:
         raise HTTPException(status_code=500, detail=str(e))
